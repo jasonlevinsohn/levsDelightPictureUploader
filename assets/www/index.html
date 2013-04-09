@@ -22,19 +22,197 @@
 	<script type="text/javascript" charset="utf-8" src="cordova-2.5.0.js"></script>
 	
 	<title>Levs Delight Picture Loader</title>
+	
+	<!-- JavaScript Functions -->
+	<script type="text/javascript" charset="utf-8">
+
+    //Variables
+    var statusText, fileSizeText, globalFileList, globalFileSize;
+
+
+	//Run Order: 1
+	function onBodyLoad() {
+		document.addEventListener("deviceready", onDeviceReady, false);
+	}
+	
+	//Run Order: 2
+	function onDeviceReady() {
+        statusText = document.getElementById('statusText');
+        fileSizeText = document.getElementById('fileSize');
+        choosePictureView();
+        statusText.innerHTML = "Choose Picture...";
+
+    }
+
+    //Run Order: 3
+    function choosePicture() {
+        statusText.innerHTML = "Choosing...";
+        navigator.camera.getPicture(onCaptureSuccess, onCaptureFail, {
+            quality : 50,
+            sourceType: Camera.PictureSourceType.PHOTOLIBRARY
+        });
+    }
+
+    //Run Order: 4
+    function onCaptureSuccess(fileList) {
+        uploadPictureView();
+        statusText.innerHTML = "Add Title & Desc...";
+        globalFileList = fileList;
+        getFileSize();
+    }
+
+    //Run Order: 5
+    function getFileSize() {
+        window.resolveLocalFileSystemURI(globalFileList, getLocalImageSuccess, getLocalImageFail);
+    }
+    
+    //Run Order: 6
+    //Gets the Size of the File and Prints it to fileSize element.
+    function getLocalImageSuccess(fileEntry) {
+        fileEntry.file(function(obj) {
+            fileSizeText.innerHTML = intScalar(obj.size);
+        });
+    }
+
+    function getLocalImageFail() {
+        navigator.notification.alert("No Image");
+    }
+
+    //Run Order: 5
+    function onCaptureFail() {
+        navigator.notification.alert("Could not get Picture from Phone");
+    }
+
+    //Run Order: 6
+    function uploadPicture() {
+        var opt = new FileUploadOptions();
+        opt.fileKey = "file";
+        opt.fileName = "ourImage.name";
+        opt.mimeType = "image/jpeg";
+
+        var params = new Object();
+        params.month = $('#select-choice-0').val();
+        params.description = $('#desc').val();
+        params.title = $('#title').val();
+
+        opt.params = params;
+
+        //This is vital to getting this to work.
+        opt.chunkedMode = false;
+
+        var ft = new FileTransfer(),
+            path = globalFileList,
+            name = "uploadedImage";
+            statusText = "Uploading Picture...";
+
+            ft.upload(path,
+                    "http://www.levsdelight.com/server/uploadFile5.php",
+                    function(result) {
+                        statusText.innerHTML = "Upload Complete";
+                        navigator.notification.alert("Upload Success");
+                    },
+                    function(error) {
+                        navigator.notification.alert("Upload Error");
+                    },
+                    opt
+
+            );
+            choosePictureView();
+
+    }
+
+    // Takes a number(file Size) and pretty prints it.
+    function intScalar(raw) {
+    	formatted = "";
+    	
+    	if(raw > 999999) {
+    		mod = (raw / 1000000).toFixed(2);
+    		formatted = mod + "MB";
+    	} else if(raw > 999) {
+    		mod = (raw / 1000).toFixed(2);
+    		formatted = mod + "KB";
+    	} else {
+    		formatted = raw.toString();
+        }
+    	
+    	return formatted;
+    }
+
+    // Show/Hides the HTML Elements for Choosing a picture
+    function choosePictureView() {
+        
+            $('#select-choice-0').parent().hide();
+            $('#description').hide();
+            $('#uploadSubmit').hide();
+            $('#lblMonth').hide();
+            $('#lblDesc').hide();
+            $('#lblTitle').hide();
+            $('#title').hide();
+            $('#desc').hide();
+            $('#choosePicture').show();
+            $('#fileSizeDiv').hide();
+    }
+
+    // Show/Hides the HTML Elements for Uploading a Picture
+    function uploadPictureView() {
+        
+            $('#select-choice-0').parent().show();
+            $('#description').show();
+            $('#uploadSubmit').show();
+            $('#lblMonth').show();
+            $('#lblDesc').show();
+            $('#lblTitle').show();
+            $('#title').show();
+            $('#desc').show();
+            $('#choosePicture').hide();
+            $('#fileSizeDiv').show();
+    }
+	</script>
 </head>
 
-<body>
+<body onload="onBodyLoad()">
 	<div data-role="page" data-theme="a">
 		<div data-role="header" data-position="fixed">
 			Lev's Delight Picture Uploader
 		</div>
 		
 		<div data-role="content" data-theme="a">
-			Upload Pictures in this general area.
+			Upload Pictures from Photo Album
+			<p id="appInfo"></p>
+			
+			<div id="picture"></div>
+			<label id="lblMonth" for="select-choice-0" class="select">Month:</label>
+			<select name="select-choice-0" id="select-choice-0">
+				<option value="april2013">April 2013</option>
+				<option value="may2013">May 2013</option>
+				<option value="june2013">June 2013</option>
+			</select>
+			
+			<label id="lblTitle" for="title">Title:</label>
+			<input id="title" name="title" type="text" />
+			
+			<label id="lblDesc" for="desc">Description:</label>
+            <textarea name="desc" id="desc"></textarea>
+            <span>Status: </span><span id="statusText"></span>
+            <div id="fileSizeDiv">
+            	<span>File Size: </span><span id="fileSize"></span>
+            </div>
+			
+			<a id="uploadSubmit" data-role="button" data-transition="fade" href="javascript:uploadPicture()">
+				Upload Picture
+			</a>
+			
+			<div id="spacer" style="height: 50px;">
+			
+			<a id="choosePicture" data-role="button" data-transition="fade" href="javascript:choosePicture()">
+				Choose Picture
+			</a>
+			
+			<div id="captureResults"></div>
+			
 		</div>
 		
-		<div data-role="footer" data-position="fixed">
+		<div data-role="footer" data-position="fixed" data-theme="a">
 			<h1>by Jason</h1>
 		</div>
 	</div>
