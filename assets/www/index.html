@@ -21,6 +21,11 @@
 	<!-- PhoneGap (Cordova) -->
 	<script type="text/javascript" charset="utf-8" src="cordova-2.5.0.js"></script>
 	
+	<!-- Amazon S3 Upload Libraries -->
+	<script type="text/javascript" src="lodash.min.js"></script>
+    <script type="text/javascript" src="s3upload.js"></script>
+
+
 	<title>Levs Delight Picture Loader</title>
 	
 	<!-- JavaScript Functions -->
@@ -28,6 +33,7 @@
 
     //Variables
     var statusText, fileSizeText, globalFileList, globalFileSize;
+    var globalFileName;
 
 
 	//Run Order: 1
@@ -48,10 +54,14 @@
     function choosePicture() {
         statusText.innerHTML = "Choosing...";
         navigator.camera.getPicture(onCaptureSuccess, onCaptureFail, {
-            quality : 50,
-            sourceType: Camera.PictureSourceType.PHOTOLIBRARY
+            quality : 45,
+            destinationType: Camera.DestinationType.FILE_URI,
+            sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
+            encodingType: Camera.EncodingType.JPEG
         });
     }
+    
+ 
 
     //Run Order: 4
     function onCaptureSuccess(fileList) {
@@ -71,9 +81,12 @@
     function getLocalImageSuccess(fileEntry) {
         fileEntry.file(function(obj) {
             fileSizeText.innerHTML = intScalar(obj.size);
+            globalFileName = obj.name;
         });
     }
-
+    
+    
+	//Run Order: 6
     function getLocalImageFail() {
         navigator.notification.alert("No Image");
     }
@@ -85,41 +98,229 @@
 
     //Run Order: 6
     function uploadPicture() {
-        var opt = new FileUploadOptions();
-        opt.fileKey = "file";
-        opt.fileName = "ourImage.name";
-        opt.mimeType = "image/jpeg";
 
+		
         var params = new Object();
         params.month = $('#select-choice-0').val();
         params.description = $('#desc').val();
         params.title = $('#title').val();
+		
+        
+        // Get the PUT Request signature for S3
+        var type = "image/jpeg";
+        var name = globalFileName;
+        var url = "http://192.168.43.15:8000/sign_s3_upload/";
+        // var url = "http://192.168.1.117:8000/sign_s3_upload/";
+        var getPutUrl = url + '?s3_object_type=' + type + '&s3_object_name=' + encodeURIComponent(name);
+       
+        
+        // AWS Option Params
+        var options = new FileUploadOptions();
+        options.fileKey = "file";
+        options.fileName = name;
+        options.mimeType = "image/jpeg";
+        options.chunkedMode = false;
 
-        opt.params = params;
+        var s3URI = encodeURI("https://levsdelight3.s3.amazonaws.com/");
+        var acl = "public-read";
 
-        //This is vital to getting this to work.
-        opt.chunkedMode = false;
+        $.ajax({
+            url: url,
+            type: "POST",
+            data: {
+                filename: name
+                },
+            success: function(msg) {
+               
+                parsed = JSON.parse(msg);
+                
+                options.params = {
+                    "key": "img/" + name,
+                    "AWSAccessKeyId": parsed.aws_key,
+                    "acl": parsed.acl,
+                    "policy": parsed.policy,
+                    "signature": parsed.signature,
+                    "Content-Type": "image/jpeg"
+                };
+                
+                
 
-        var ft = new FileTransfer(),
-            path = globalFileList,
-            name = "uploadedImage";
-            statusText = "Uploading Picture...";
-
-            ft.upload(path,
-                    "http://www.levsdelight.com/server/uploadFile5.php",
-                    function(result) {
-                        statusText.innerHTML = "Upload Complete";
-                        navigator.notification.alert("Upload Success");
+                // Upload the image
+                var ft = new FileTransfer();
+                ft.upload(
+                    globalFileList,
+                    s3URI,
+                    function (success) {
+                        console.log("File Upload Complete...")
+                        console.log(JSON.stringify(success));
                     },
-                    function(error) {
-                        navigator.notification.alert("Upload Error");
+                    function (error) {
+                        console.log("ERROR: ");
+                        console.log(JSON.stringify(error));
                     },
-                    opt
+                    options
 
-            );
-            choosePictureView();
+                    );
+            },
+            error: function(error) {
+                console.log("Error Bitch: ");
+                console.log(error);
+            }
+         });
 
+        // var s3Id = "AKIAINGSQGI5FMNIXCJA";
+        // var s3Secret = "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";
+
+        /* var s3Policy = {
+            "expiration": "2020-12-31T12:00:00.000Z",
+            "conditions": [
+                {"bucket": "levsdelight"},
+                ["starts-with", "$key", ""],
+                {"acl": 'public-read'},
+                ["starts-with", "$Content-Type", ""],
+                ["content-length-range", 0, 524288000]
+            ]
+        };
+		
+        var s3Policy64 = CryptoJS.enc.Base64.stringify(s3Policy);
+
+        var s3Hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA1, s3Secret); 
+        s3Hmac.update(s3Policy64);
+
+
+        var s3Hash = s3Hmac.finalize();
+        console.log("The s3Hash: ");
+        console.log(s3Hash);
+
+        var sig64 = CryptoJS.enc.Base64.stringify(s3Hash);
+        console.log("Base64 Sig: ");
+        console.log(sig64);
+
+        */
+
+        // OPEN THIS UP WHEN WE GET THE SIG AND POLICY BACK FROM DJANGO
+        /*
+        options.params = {
+        //**************Possible Problem - we may need the folder or not... I"m going to say yes.*************
+            "key": name,
+            "AWSAceessKeyId": s3Id,
+            "acl": acl,
+            "policy": s3Policy64,
+            "signature": sig64,
+            "Content-Type": "image/jpeg"
+        };
+        */
+
+
+
+        
+        
+        
+        
+        /*
+        $.ajax({
+            url: getPutUrl,
+            type: "GET",
+            beforeSend: function() {
+                console.log("We are going to get that PUT Sig now");
+            },
+            complete: function(msg) {
+               
+                parsed = JSON.parse(msg.responseText);
+                console.log(parsed.url);
+                
+                var s3URI = encodeURI(parsed.url);
+                
+                console.log("Encoded URI: ");
+                console.log(s3URI);
+                
+                // AWS Option Params
+                var ft = new FileTransfer();
+      			var options = new FileUploadOptions();
+        		options.fileKey = "file";
+        		options.fileName = name;
+        		options.mimeType = "image/jpeg";
+        		options.chunkedMode = false;
+        		
+        		console.log("The Options: ");
+        		console.log(name);
+        		console.log(parsed.aws_key);
+        		console.log(parsed.policy);
+        		console.log(parsed.acl);
+        		console.log(parsed.signature);
+        		
+        		
+                options.params = {
+                //**************Possible Problem - we may need the folder or not... I"m going to say yes.*************
+                	"key": name,
+                	"AWSAceessKeyId": parsed.aws_key,
+                	"acl": parsed.acl,
+                	"policy": parsed.policy,
+                	"signature": parsed.signature,
+                	"Content-Type": "image/jpeg"
+                };
+              
+                //Upload the stuff
+                ft.upload(
+                	globalFileList,
+                	s3URI,
+                	function(result) {
+                		console.log("we did it");
+                	},
+                	function(error) {
+                		console.log("big Fail");
+                		console.log(JSON.stringify(error));
+                	},
+                	options
+                );
+            }
+            
+        });
+        */
+        
+        /*var s3_upload = new S3Upload({
+        	file_dom_selector: globalFileList,
+        	s3_sign_put_url: 'http://192.168.43.15:8000/sign_s3_upload',
+        	
+        	onProgress: function(percent, message) {
+        		statusText = "Progress: " + percent + "% " + message;
+        	},
+        	
+        	onFinishS3Put: function(url) {
+        		statusText = "Upload Complete to: " + url;
+        	},
+        	
+        	onError: function(status) {
+        		statusText = "Upload Error: " + status;
+        	}
+        	
+        	
+        });*/
+        
+        choosePictureView();
     }
+
+        //var ft = new FileTransfer(),
+           // path = globalFileList,
+           // name = "uploadedImage";
+           // statusText = "Uploading Picture...";
+
+           // ft.upload(path,
+                    // "http://www.levsdelight.com/server/uploadFile5.php",
+             //       "http://192.168.1.117:8000/uploadImage/",
+              //      function(result) {
+                //        statusText.innerHTML = "Upload Complete";
+                 //       navigator.notification.alert(result);
+                  //  },
+                   // function(error) {
+                    //    navigator.notification.alert(error);
+                   // },
+                   // opt
+//
+  //          );
+    //        choosePictureView();
+//
+  //  }
 
     // Takes a number(file Size) and pretty prints it.
     function intScalar(raw) {
@@ -177,15 +378,16 @@
 		</div>
 		
 		<div data-role="content" data-theme="a">
-			Upload Pictures from Photo Album
+			Upload Picturex from Photo Album
 			<p id="appInfo"></p>
 			
 			<div id="picture"></div>
 			<label id="lblMonth" for="select-choice-0" class="select">Month:</label>
 			<select name="select-choice-0" id="select-choice-0">
-				<option value="april2013">April 2013</option>
+			    <option value="ezra">Ezra</option>
 				<option value="may2013">May 2013</option>
 				<option value="june2013">June 2013</option>
+				<option value="july2013">July 2013</option>
 			</select>
 			
 			<label id="lblTitle" for="title">Title:</label>
