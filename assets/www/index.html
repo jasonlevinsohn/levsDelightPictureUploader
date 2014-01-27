@@ -109,7 +109,7 @@
         // Get the PUT Request signature for S3
         var type = "image/jpeg";
         var name = globalFileName;
-        var url = "http://192.168.43.15:8000/sign_s3_upload/";
+        var url = "http://192.168.43.83:8000/sign_s3_upload/";
         // var url = "http://192.168.1.117:8000/sign_s3_upload/";
         var getPutUrl = url + '?s3_object_type=' + type + '&s3_object_name=' + encodeURIComponent(name);
        
@@ -135,13 +135,15 @@
                 parsed = JSON.parse(msg);
                 
                 options.params = {
-                    "key": "img/" + name,
+                    "key": "img/" + params.month + "/" + name,
                     "AWSAccessKeyId": parsed.aws_key,
                     "acl": parsed.acl,
                     "policy": parsed.policy,
                     "signature": parsed.signature,
                     "Content-Type": "image/jpeg"
                 };
+                
+                console.log("Lev's Delight File Directory: " + options.params['key']);
                 
                 
 
