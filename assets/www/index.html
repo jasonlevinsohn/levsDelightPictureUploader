@@ -162,6 +162,7 @@
                     function (error) {
                         console.log("ERROR: ");
                         console.log(JSON.stringify(error));
+                        navigator.notification.alert(error);
                     },
                     options
 
@@ -169,165 +170,15 @@
             },
             error: function(error) {
                 console.log("Error Bitch: ");
-                console.log(error);
+                console.log(JSON.stringify(error));
                 navigator.notification.alert(error);
             }
          });
 
-        // var s3Id = "AKIAINGSQGI5FMNIXCJA";
-        // var s3Secret = "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";
-
-        /* var s3Policy = {
-            "expiration": "2020-12-31T12:00:00.000Z",
-            "conditions": [
-                {"bucket": "levsdelight"},
-                ["starts-with", "$key", ""],
-                {"acl": 'public-read'},
-                ["starts-with", "$Content-Type", ""],
-                ["content-length-range", 0, 524288000]
-            ]
-        };
-		
-        var s3Policy64 = CryptoJS.enc.Base64.stringify(s3Policy);
-
-        var s3Hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA1, s3Secret); 
-        s3Hmac.update(s3Policy64);
-
-
-        var s3Hash = s3Hmac.finalize();
-        console.log("The s3Hash: ");
-        console.log(s3Hash);
-
-        var sig64 = CryptoJS.enc.Base64.stringify(s3Hash);
-        console.log("Base64 Sig: ");
-        console.log(sig64);
-
-        */
-
-        // OPEN THIS UP WHEN WE GET THE SIG AND POLICY BACK FROM DJANGO
-        /*
-        options.params = {
-        //**************Possible Problem - we may need the folder or not... I"m going to say yes.*************
-            "key": name,
-            "AWSAceessKeyId": s3Id,
-            "acl": acl,
-            "policy": s3Policy64,
-            "signature": sig64,
-            "Content-Type": "image/jpeg"
-        };
-        */
-
-
-
-        
-        
-        
-        
-        /*
-        $.ajax({
-            url: getPutUrl,
-            type: "GET",
-            beforeSend: function() {
-                console.log("We are going to get that PUT Sig now");
-            },
-            complete: function(msg) {
-               
-                parsed = JSON.parse(msg.responseText);
-                console.log(parsed.url);
-                
-                var s3URI = encodeURI(parsed.url);
-                
-                console.log("Encoded URI: ");
-                console.log(s3URI);
-                
-                // AWS Option Params
-                var ft = new FileTransfer();
-      			var options = new FileUploadOptions();
-        		options.fileKey = "file";
-        		options.fileName = name;
-        		options.mimeType = "image/jpeg";
-        		options.chunkedMode = false;
-        		
-        		console.log("The Options: ");
-        		console.log(name);
-        		console.log(parsed.aws_key);
-        		console.log(parsed.policy);
-        		console.log(parsed.acl);
-        		console.log(parsed.signature);
-        		
-        		
-                options.params = {
-                //**************Possible Problem - we may need the folder or not... I"m going to say yes.*************
-                	"key": name,
-                	"AWSAceessKeyId": parsed.aws_key,
-                	"acl": parsed.acl,
-                	"policy": parsed.policy,
-                	"signature": parsed.signature,
-                	"Content-Type": "image/jpeg"
-                };
-              
-                //Upload the stuff
-                ft.upload(
-                	globalFileList,
-                	s3URI,
-                	function(result) {
-                		console.log("we did it");
-                	},
-                	function(error) {
-                		console.log("big Fail");
-                		console.log(JSON.stringify(error));
-                	},
-                	options
-                );
-            }
-            
-        });
-        */
-        
-        /*var s3_upload = new S3Upload({
-        	file_dom_selector: globalFileList,
-        	s3_sign_put_url: 'http://192.168.43.15:8000/sign_s3_upload',
-        	
-        	onProgress: function(percent, message) {
-        		statusText = "Progress: " + percent + "% " + message;
-        	},
-        	
-        	onFinishS3Put: function(url) {
-        		statusText = "Upload Complete to: " + url;
-        	},
-        	
-        	onError: function(status) {
-        		statusText = "Upload Error: " + status;
-        	}
-        	
-        	
-        });*/
-        
         choosePictureView();
     }
 
-        //var ft = new FileTransfer(),
-           // path = globalFileList,
-           // name = "uploadedImage";
-           // statusText = "Uploading Picture...";
-
-           // ft.upload(path,
-                    // "http://www.levsdelight.com/server/uploadFile5.php",
-             //       "http://192.168.1.117:8000/uploadImage/",
-              //      function(result) {
-                //        statusText.innerHTML = "Upload Complete";
-                 //       navigator.notification.alert(result);
-                  //  },
-                   // function(error) {
-                    //    navigator.notification.alert(error);
-                   // },
-                   // opt
-//
-  //          );
-    //        choosePictureView();
-//
-  //  }
-  
+   // Run Order: 7
     function persistImageToPostgres(filePath, month, title, desc) {
     	
     	$.ajax({
@@ -341,7 +192,7 @@
     			month: month
     		},
     		success: function(msg) {
-    			notification.alert(filePath + " uploaded successfully!!");
+    			navigator.notification.alert(filePath + " uploaded successfully!!");
     		},
     		error: function(error) {
     			navigator.notification.alert("Error: ");
