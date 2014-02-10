@@ -110,7 +110,7 @@
         var type = "image/jpeg";
         var name = globalFileName;
         var url = "http://192.168.43.83:8000/sign_s3_upload/";
-        // var url = "http://192.168.1.117:8000/sign_s3_upload/";
+        // var url = "http://192.168.118.196:8000/sign_s3_upload/";
         var getPutUrl = url + '?s3_object_type=' + type + '&s3_object_name=' + encodeURIComponent(name);
        
         
@@ -134,8 +134,10 @@
                
                 parsed = JSON.parse(msg);
                 
+                var theKey = "img/" + params.month + "/" + name;
+                
                 options.params = {
-                    "key": "img/" + params.month + "/" + name,
+                    "key": theKey,
                     "AWSAccessKeyId": parsed.aws_key,
                     "acl": parsed.acl,
                     "policy": parsed.policy,
@@ -155,6 +157,7 @@
                     function (success) {
                         console.log("File Upload Complete...")
                         console.log(JSON.stringify(success));
+                        persistImageToPostgres(theKey, params.month, params.title, params.description);
                     },
                     function (error) {
                         console.log("ERROR: ");
@@ -167,6 +170,7 @@
             error: function(error) {
                 console.log("Error Bitch: ");
                 console.log(error);
+                navigator.notification.alert(error);
             }
          });
 
@@ -323,6 +327,28 @@
     //        choosePictureView();
 //
   //  }
+  
+    function persistImageToPostgres(filePath, month, title, desc) {
+    	
+    	$.ajax({
+    		url: "http://192.168.43.83:8000/write_image_to_database/",
+    		//url: "http://192.168.118.196:8000/write_image_to_database/",
+    		type: "POST",
+    		data: {
+    			path: filePath,
+    			title: title,
+    			desc: desc,
+    			month: month
+    		},
+    		success: function(msg) {
+    			notification.alert(filePath + " uploaded successfully!!");
+    		},
+    		error: function(error) {
+    			navigator.notification.alert("Error: ");
+    			navigator.notification.alert(error);
+    		}
+    	});
+    }
 
     // Takes a number(file Size) and pretty prints it.
     function intScalar(raw) {
