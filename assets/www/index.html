@@ -49,6 +49,8 @@
         choosePictureView();
         statusText.innerHTML = "Choose Picture...";
     	$('#uploadProgressDiv').hide();    
+    	
+    	buildMonthSelectDropdown();
 
     }
 
@@ -173,6 +175,14 @@
                         persistImageToPostgres(persistPath, params.month, params.title, params.description);
                         $('#uploadProgressDiv').hide();
                         choosePictureView();
+                        var statusText, fileSizeText, globalFileList, globalFileSize;
+    var globalFileName;
+    					$('#desc').text("");
+    					$('#title').text("");
+    					statusText = null;
+    					fileSizeText = null;
+    					globalFileList = null;
+    					globalFileSize = null;
                     },
                     function (error) {
                         console.log("ERROR: ");
@@ -265,6 +275,50 @@
             $('#choosePicture').hide();
             $('#fileSizeDiv').show();
     }
+    
+    // Sets the months in the dropdown to the current month
+    // and past three months.
+    var buildMonthSelectDropdown = function() {
+  		var monthNames = [ "January", "February", "March", "April", "May", "June",
+    		"July", "August", "September", "October", "November", "December" ];
+ 
+  		var totalMonths = 12;
+  		var currentYear, valueMonth, displayMonth, displayYear;
+
+  		var currentMonth = new Date().getMonth();
+  		var selectEl = $('#select-choice-0');
+  
+  
+  		for(var i=0;i<14;i++) {
+     		// Find the offset month
+     		var offset = (totalMonths - i) + currentMonth;
+     		var offsetMonth = offset % totalMonths;
+      
+     		// Find the offset year. If the offset is less 
+     		// than 12 the date was last year.
+    		if(offset < totalMonths) {
+      			currentYear = new Date().getYear() - 1;
+    		} else {
+      			currentYear = new Date().getYear();
+    		}
+    		
+    		displayYear = 1900 + currentYear;
+     		
+     		valueMonth = monthNames[offsetMonth].toLowerCase() +
+                    displayYear;
+     		displayMonth = monthNames[offsetMonth] + " " + displayYear;
+     		
+     		var o = new Option(displayMonth, valueMonth);
+     		selectEl.append(o);
+     		
+     		
+  		}
+  		// Make the current month selected initially.
+  		$('#select-choice-0 option:eq(0)').attr('selected', 'selected');
+  		
+  		// Hack which must be done for the option to display initially.
+  		selectEl.trigger("change");
+	};
 	</script>
 </head>
 
@@ -275,15 +329,12 @@
 		</div>
 		
 		<div data-role="content" data-theme="a">
-			Upload Picturex from Photo Album
+			Upload Picture from Photo Album
 			<p id="appInfo"></p>
 			
 			<div id="picture"></div>
 			<label id="lblMonth" for="select-choice-0" class="select">Month:</label>
 			<select name="select-choice-0" id="select-choice-0">
-				<option value="february2014">February 2014</option>
-				<option value="june2013">June 2013</option>
-				<option value="july2013">July 2013</option>
 			</select>
 			
 			<label id="lblTitle" for="title">Title:</label>
