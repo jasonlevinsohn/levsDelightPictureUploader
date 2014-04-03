@@ -1,4 +1,4 @@
-levsDelightPictureUploader
+PhoneGap / jQueryUI / S3 Picture Uploader
 ==========================
 ###### Uploads pictures from a mobile device to an Amazon S3 bucket which is used to display slideshows on the Lev's Delight Farm website.
 * PhoneGap
